@@ -1,0 +1,30 @@
+name: Build bootc disk
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build container
+        run: sudo podman build -t localhost/my-bootc:latest .
+
+      - name: Build qcow2
+        run: |
+          mkdir -p output
+          sudo podman run --rm --privileged \
+            -v $PWD/output:/output \
+            -v /var/lib/containers/storage:/var/lib/containers/storage \
+            quay.io/centos-bootc/bootc-image-builder:latest \
+            --type qcow2 --rootfs xfs \
+            localhost/my-bootc:latest
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: disk-qcow2
+          path: output/qcow2/disk.qcow2
+          retention-days: 7
